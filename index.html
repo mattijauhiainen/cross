@@ -1,0 +1,260 @@
+<html>
+  <head>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        width: 100vh;
+        overflow: hidden;
+        background-color: red;
+      }
+
+      .content {
+        inset: 0;
+        /* width: 100vw; */
+        /* height: 100vh; */
+        /* background-image: url(./map.svg); */
+        /* background-image: url(./map_jpeg.jpg); */
+        background-image: url(./map_bw.jpg);
+        /* background-image: url(./map2.svg); */
+        /* background-image: url(./map3.jpeg); */
+        background-position: center center;
+        background-repeat: no-repeat;
+        background-size: cover;
+        background-color: maroon;
+        position: absolute;
+      }
+
+      .crosshairs {
+        background-color: gold;
+        position: absolute;
+        transition: transform linear;
+        transition-duration: 1s;
+      }
+
+      .crosshairs.horizontal {
+        width: 100vw;
+        height: 1px;
+        top: -1px;
+      }
+
+      .crosshairs.vertical {
+        width: 1px;
+        height: 100vh;
+        left: -1px;
+      }
+
+      .marker {
+        position: absolute;
+        background-color: red;
+        transition: opacity 1s ease-out;
+      }
+
+      .marker.x {
+        width: 7px;
+        height: 1px;
+        margin-left: -3px;
+      }
+
+      .marker.y {
+        width: 1px;
+        height: 7px;
+        margin-top: -3px;
+      }
+
+      .city-label {
+        margin-left: 6px;
+        margin-top: -6px;
+        color: red;
+        font-size: 10px;
+        font-family: "Lucida", "Courier", monospace;
+        position: absolute;
+        transition: opacity 1s ease-out;
+      }
+    </style>
+    <script type="module">
+      // import { data } from "./earthquakes.js";
+      import { earthquakes as data } from "./all_month.js";
+      import { cities } from "./cities.js";
+
+      function xRandom() {
+        return Math.random() * window.innerWidth;
+      }
+
+      function yRandom() {
+        return Math.random() * window.innerHeight;
+      }
+
+      function getMapDimensions(imageWidth, imageHeight) {
+        const containerWidth = window.innerWidth;
+        const containerHeight = window.innerHeight;
+
+        const containerAspectRatio = containerWidth / containerHeight;
+        const imageAspectRatio = imageWidth / imageHeight;
+        if (imageAspectRatio >= containerAspectRatio) {
+          const mapHeight = containerHeight;
+          const scale = mapHeight / imageHeight;
+          const mapWidth = scale * imageWidth;
+          const mapXOverflow = mapWidth - containerWidth;
+          return { mapWidth, mapHeight, mapXOverflow, mapYOverflow: 0 };
+        } else {
+          const mapWidth = containerWidth;
+          const scale = mapWidth / imageWidth;
+          const mapHeight = scale * imageHeight;
+          const mapYOverflow = mapHeight - containerHeight;
+          return { mapWidth, mapHeight, mapXOverflow: 0, mapYOverflow };
+        }
+      }
+
+      function latLngToPixel({
+        mapWidth,
+        mapHeight,
+        lat,
+        lng,
+        mapXOverflow,
+        mapYOverflow,
+      }) {
+        console.log(mapWidth, mapHeight, mapXOverflow, mapYOverflow, lat, lng);
+        const x = (lng + 180) * (mapWidth / 360);
+        const latRadians = (lat * Math.PI) / 180;
+        const mercN = Math.log(Math.tan(Math.PI / 4 + latRadians / 2));
+        const y = mapHeight / 2 - (mapWidth * mercN) / (2 * Math.PI);
+        const RX = 1;
+        const RY = 1;
+        return {
+          x: x * RX - mapXOverflow / 2,
+          y: y * RY - mapYOverflow / 2,
+        };
+      }
+
+      const FADE_TIMEOUT_MS = 5_000;
+
+      document.addEventListener("DOMContentLoaded", async () => {
+        const verticalLine = document.querySelector(".crosshairs.vertical");
+        const horizontalLine = document.querySelector(".crosshairs.horizontal");
+        verticalLine.style.transform = `translate(${xRandom()}px, 0px)`;
+        horizontalLine.style.transform = `translate(0px, ${yRandom()}px)`;
+
+        const imageWidth = 2058;
+        const imageHeight = 2058;
+
+        // const imageWidth = 1652;
+        // const imageHeight = 1220;
+        const { mapWidth, mapHeight, mapXOverflow, mapYOverflow } =
+          getMapDimensions(imageWidth, imageHeight);
+
+        async function waitForAnimationToComplete() {
+          const { promise: horizontal, resolve: resolveHorizontal } =
+            Promise.withResolvers();
+          const { promise: vertical, resolve: resolveVertical } =
+            Promise.withResolvers();
+          verticalLine.addEventListener("transitionend", resolveVertical);
+          horizontalLine.addEventListener("transitionend", resolveHorizontal);
+          await Promise.race([
+            Promise.all([vertical, horizontal]),
+            new Promise((resolve) => setTimeout(resolve, 5000)),
+          ]);
+          verticalLine.removeEventListener("transitionend", resolveVertical);
+          horizontalLine.removeEventListener(
+            "transitionend",
+            resolveHorizontal
+          );
+        }
+
+        function moveToCoordinates(x, y) {
+          const currentX =
+            parseFloat(
+              verticalLine.style.transform.match(
+                /translate.([0-9]*\.[0-9]*)px/
+              )?.[1]
+            ) || 0;
+          const currentY =
+            parseFloat(
+              horizontalLine.style.transform.match(
+                /translate\(0px, ([0-9]*\.[0-9]*)/
+              )?.[1]
+            ) || 0;
+          const distance = Math.pow(
+            Math.pow(x - currentX, 2) + Math.pow(y - currentY, 2),
+            0.5
+          );
+          const SPEED_FACTOR = 0.5;
+          const duration = distance / SPEED_FACTOR;
+          verticalLine.style.transform = `translate(${x}px, 0px)`;
+          horizontalLine.style.transform = `translate(0px, ${y}px)`;
+          verticalLine.style.transitionDuration = `${duration}ms`;
+          horizontalLine.style.transitionDuration = `${duration}ms`;
+        }
+
+        function markCoordinate(x, y) {
+          const markerX = document.createElement("div");
+          markerX.classList.add("marker", "x");
+          markerX.style.left = `${x}px`;
+          markerX.style.top = `${y}px`;
+          document.querySelector(".content").append(markerX);
+          const markerY = document.createElement("div");
+          markerY.classList.add("marker", "y");
+          markerY.style.left = `${x}px`;
+          markerY.style.top = `${y}px`;
+          document.querySelector(".content").append(markerY);
+          // setTimeout(() => {
+          //   markerX.style.opacity = 0;
+          //   markerX.addEventListener("transitionend", () => {
+          //     markerX.remove();
+          //   });
+          //   markerY.style.opacity = 0;
+          //   markerY.addEventListener("transitionend", () => {
+          //     markerY.remove();
+          //   });
+          // }, FADE_TIMEOUT_MS);
+        }
+
+        function labelCoordinate(x, y, label) {
+          const labelElement = document.createElement("span");
+          labelElement.classList.add("city-label");
+          labelElement.textContent = label;
+          labelElement.style.left = x;
+          labelElement.style.top = y;
+          document.querySelector("body").append(labelElement);
+          setTimeout(() => {
+            labelElement.style.opacity = 0;
+            labelElement.addEventListener("transitionend", () => {
+              labelElement.remove();
+            });
+          }, FADE_TIMEOUT_MS);
+        }
+
+        let i = 0;
+        while (true) {
+          await new Promise((resolve) => setTimeout(resolve, 0));
+          // const earthquake = data.features[i % data.features.length];
+          const city = cities[i % cities.length];
+          const { x, y } = latLngToPixel({
+            mapWidth,
+            mapHeight,
+            mapXOverflow,
+            mapYOverflow,
+            // lat: earthquake.geometry.coordinates[1],
+            // lng: earthquake.geometry.coordinates[0],
+            lat: city.latitude,
+            lng: city.longitude,
+          });
+          moveToCoordinates(x, y);
+          await waitForAnimationToComplete();
+          markCoordinate(x, y);
+          // labelCoordinate(x, y, earthquake.properties.place);
+          i++;
+        }
+      });
+    </script>
+  </head>
+
+  <body>
+    <div class="content">
+      <div class="crosshairs horizontal"></div>
+      <div class="crosshairs vertical"></div>
+    </div>
+  </body>
+</html>
