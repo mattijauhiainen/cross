@@ -13,11 +13,17 @@
 
       .content {
         inset: 0;
-        background-image: url(./map_bw.jpg);
-        background-position: center center;
-        background-repeat: no-repeat;
-        background-size: cover;
         position: absolute;
+        overflow: hidden;
+      }
+
+      .content img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+        position: absolute;
+        inset: 0;
       }
 
       .crosshairs {
@@ -110,8 +116,9 @@
         verticalLine.style.transform = `translate(${verticalStart}px, 0px)`;
         horizontalLine.style.transform = `translate(0px, ${horizontalStart}px)`;
 
-        const imageWidth = 2058;
-        const imageHeight = 2058;
+        const mapImage = document.querySelector(".content img");
+        const imageWidth = mapImage.naturalWidth;
+        const imageHeight = mapImage.naturalHeight;
 
         const { mapWidth, mapHeight, mapXOverflow, mapYOverflow } =
           getMapDimensions(imageWidth, imageHeight);
@@ -193,6 +200,7 @@
 
   <body>
     <div class="content">
+      <img src="./map_bw.jpg" alt="World map" width="2058" height="2058">
       <div class="crosshairs horizontal"></div>
       <div class="crosshairs vertical"></div>
     </div>
