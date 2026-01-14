@@ -5,25 +5,18 @@
       body {
         margin: 0;
         padding: 0;
-        height: 100vh;
-        width: 100vh;
+        height: 100dvh;
+        width: 100dvh;
         overflow: hidden;
         background-color: red;
       }
 
       .content {
         inset: 0;
-        /* width: 100vw; */
-        /* height: 100vh; */
-        /* background-image: url(./map.svg); */
-        /* background-image: url(./map_jpeg.jpg); */
         background-image: url(./map_bw.jpg);
-        /* background-image: url(./map2.svg); */
-        /* background-image: url(./map3.jpeg); */
         background-position: center center;
         background-repeat: no-repeat;
         background-size: cover;
-        background-color: maroon;
         position: absolute;
       }
 
@@ -35,21 +28,20 @@
       }
 
       .crosshairs.horizontal {
-        width: 100vw;
+        width: 100dvw;
         height: 1px;
         top: -1px;
       }
 
       .crosshairs.vertical {
         width: 1px;
-        height: 100vh;
+        height: 100dvh;
         left: -1px;
       }
 
       .marker {
         position: absolute;
         background-color: red;
-        transition: opacity 1s ease-out;
       }
 
       .marker.x {
@@ -64,29 +56,8 @@
         margin-top: -3px;
       }
 
-      .city-label {
-        margin-left: 6px;
-        margin-top: -6px;
-        color: red;
-        font-size: 10px;
-        font-family: "Lucida", "Courier", monospace;
-        position: absolute;
-        transition: opacity 1s ease-out;
-      }
     </style>
     <script type="module">
-      // import { data } from "./earthquakes.js";
-      import { earthquakes as data } from "./all_month.js";
-      import { cities } from "./cities.js";
-
-      function xRandom() {
-        return Math.random() * window.innerWidth;
-      }
-
-      function yRandom() {
-        return Math.random() * window.innerHeight;
-      }
-
       function getMapDimensions(imageWidth, imageHeight) {
         const containerWidth = window.innerWidth;
         const containerHeight = window.innerHeight;
@@ -116,7 +87,6 @@
         mapXOverflow,
         mapYOverflow,
       }) {
-        console.log(mapWidth, mapHeight, mapXOverflow, mapYOverflow, lat, lng);
         const x = (lng + 180) * (mapWidth / 360);
         const latRadians = (lat * Math.PI) / 180;
         const mercN = Math.log(Math.tan(Math.PI / 4 + latRadians / 2));
@@ -129,19 +99,20 @@
         };
       }
 
-      const FADE_TIMEOUT_MS = 5_000;
-
       document.addEventListener("DOMContentLoaded", async () => {
+        const response = await fetch('https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_month.geojson');
+        const data = await response.json();
+
         const verticalLine = document.querySelector(".crosshairs.vertical");
         const horizontalLine = document.querySelector(".crosshairs.horizontal");
-        verticalLine.style.transform = `translate(${xRandom()}px, 0px)`;
-        horizontalLine.style.transform = `translate(0px, ${yRandom()}px)`;
+        const verticalStart = Math.random() * window.innerWidth
+        const horizontalStart = Math.random() * window.innerWidth
+        verticalLine.style.transform = `translate(${verticalStart}px, 0px)`;
+        horizontalLine.style.transform = `translate(0px, ${horizontalStart}px)`;
 
         const imageWidth = 2058;
         const imageHeight = 2058;
 
-        // const imageWidth = 1652;
-        // const imageHeight = 1220;
         const { mapWidth, mapHeight, mapXOverflow, mapYOverflow } =
           getMapDimensions(imageWidth, imageHeight);
 
@@ -176,10 +147,8 @@
                 /translate\(0px, ([0-9]*\.[0-9]*)/
               )?.[1]
             ) || 0;
-          const distance = Math.pow(
-            Math.pow(x - currentX, 2) + Math.pow(y - currentY, 2),
-            0.5
-          );
+          const distance =
+            Math.sqrt((x - currentX) ** 2 + (y - currentY) ** 2);
           const SPEED_FACTOR = 0.5;
           const duration = distance / SPEED_FACTOR;
           verticalLine.style.transform = `translate(${x}px, 0px)`;
@@ -199,52 +168,23 @@
           markerY.style.left = `${x}px`;
           markerY.style.top = `${y}px`;
           document.querySelector(".content").append(markerY);
-          // setTimeout(() => {
-          //   markerX.style.opacity = 0;
-          //   markerX.addEventListener("transitionend", () => {
-          //     markerX.remove();
-          //   });
-          //   markerY.style.opacity = 0;
-          //   markerY.addEventListener("transitionend", () => {
-          //     markerY.remove();
-          //   });
-          // }, FADE_TIMEOUT_MS);
-        }
-
-        function labelCoordinate(x, y, label) {
-          const labelElement = document.createElement("span");
-          labelElement.classList.add("city-label");
-          labelElement.textContent = label;
-          labelElement.style.left = x;
-          labelElement.style.top = y;
-          document.querySelector("body").append(labelElement);
-          setTimeout(() => {
-            labelElement.style.opacity = 0;
-            labelElement.addEventListener("transitionend", () => {
-              labelElement.remove();
-            });
-          }, FADE_TIMEOUT_MS);
         }
 
         let i = 0;
         while (true) {
           await new Promise((resolve) => setTimeout(resolve, 0));
-          // const earthquake = data.features[i % data.features.length];
-          const city = cities[i % cities.length];
+          const earthquake = data.features[i % data.features.length];
           const { x, y } = latLngToPixel({
             mapWidth,
             mapHeight,
             mapXOverflow,
             mapYOverflow,
-            // lat: earthquake.geometry.coordinates[1],
-            // lng: earthquake.geometry.coordinates[0],
-            lat: city.latitude,
-            lng: city.longitude,
+            lat: earthquake.geometry.coordinates[1],
+            lng: earthquake.geometry.coordinates[0],
           });
           moveToCoordinates(x, y);
           await waitForAnimationToComplete();
           markCoordinate(x, y);
-          // labelCoordinate(x, y, earthquake.properties.place);
           i++;
         }
       });
