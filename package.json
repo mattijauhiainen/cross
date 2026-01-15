@@ -1,0 +1,11 @@
+{
+  "name": "cross",
+  "version": "1.0.0",
+  "type": "module",
+  "scripts": {
+    "start": "npx servor public index.html --port 8080",
+    "deploy": "bun scripts/deploy.js"
+  },
+  "devDependencies": {},
+  "dependencies": {}
+}
