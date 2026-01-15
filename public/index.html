@@ -15,6 +15,7 @@
         inset: 0;
         position: absolute;
         overflow: hidden;
+        background: black;
       }
 
       .content img {
@@ -63,14 +64,22 @@
       }
 
       .label-container {
+        transition: height 700ms ease-in, translate 700ms ease-in;
         position: absolute;
         bottom: 10px;
         left: 10px;
         height: 150px;
         overflow: hidden;
         width: 500px;
-        /* Add some tint to keep the text readable */
+        /* Add some tint to keep the text somewhat readable */
         background: rgba(0, 0, 0, 0.3)
+      }
+
+      @starting-style {
+          .label-container {
+              height: 0px;
+              translate: 0px -75px;
+          }
       }
 
       .label-container::before {
@@ -143,7 +152,7 @@
 
   <body>
     <div class="content">
-      <img src="./map_bw.jpg" alt="World map" width="2058" height="2058">
+      <img src="./map_bw.webp" alt="World map" width="2058" height="2058">
       <div class="crosshairs horizontal"></div>
       <div class="crosshairs vertical"></div>
     </div>

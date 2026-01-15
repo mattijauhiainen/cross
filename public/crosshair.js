@@ -1,16 +1,8 @@
 import { promiseWithTimeout } from './promiseWithTimeout.js';
 
-let verticalLine, horizontalLine;
-document.addEventListener("DOMContentLoaded", async () => {
-  verticalLine = document.querySelector(".crosshairs.vertical");
-  horizontalLine = document.querySelector(".crosshairs.horizontal");
-  const verticalStart = Math.random() * window.innerWidth;
-  const horizontalStart = Math.random() * window.innerWidth;
-  verticalLine.style.transform = `translate(${verticalStart}px, 0px)`;
-  horizontalLine.style.transform = `translate(0px, ${horizontalStart}px)`;
-});
-
 export async function moveToCoordinates(x, y) {
+  const verticalLine = document.querySelector(".crosshairs.vertical");
+  const horizontalLine = document.querySelector(".crosshairs.horizontal");
   const currentX =
     parseFloat(
       verticalLine.style.transform.match(
