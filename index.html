@@ -62,11 +62,56 @@
         margin-top: -3px;
       }
 
+      .label-container {
+        position: absolute;
+        bottom: 10px;
+        left: 10px;
+        height: 150px;
+        overflow: hidden;
+        width: 500px;
+        /* Add some tint to keep the text readable */
+        background: rgba(0, 0, 0, 0.3)
+      }
+
+      .label-container::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        bottom: 0;
+        /* Fade the labels in and out with a gradient */
+        background: linear-gradient(to bottom,
+          rgba(255, 0, 0, 1) 0%,
+          rgba(255, 0, 0, 0) 20%,
+          rgba(255, 0, 0, 0) 80%,
+          rgba(255, 0, 0, 1) 100%
+        );
+        pointer-events: none;
+        z-index: 1;
+        border-radius: 4px;
+      }
+
+      .label-list {
+        display: flex;
+        flex-direction: column;
+        transition: transform 0.3s linear;
+      }
+
+      .earthquake-label {
+        color: red;
+        padding: 5px 10px;
+        font-family: monospace;
+        font-size: 14px;
+        white-space: nowrap;
+        flex-shrink: 0;
+      }
+
     </style>
     <script type="module">
       import { moveToCoordinates } from './crosshair.js';
       import { fetchEarthquakeData } from './data.js';
-      import { markCoordinate } from './gui.js';
+      import { addLabel, markCoordinate } from './gui.js';
       import { getMapDimensions, latLngToPixel } from './map.js';
 
       const dataPromise = fetchEarthquakeData();
@@ -89,6 +134,7 @@
           });
           await moveToCoordinates(x, y);
           markCoordinate(x, y);
+          addLabel(earthquake.properties.place, earthquake.properties.mag);
           i++;
         }
       });
@@ -100,6 +146,9 @@
       <img src="./map_bw.jpg" alt="World map" width="2058" height="2058">
       <div class="crosshairs horizontal"></div>
       <div class="crosshairs vertical"></div>
+    </div>
+    <div class="label-container">
+      <div class="label-list"></div>
     </div>
   </body>
 </html>

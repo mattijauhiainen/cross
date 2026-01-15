@@ -37,7 +37,7 @@ export async function moveToCoordinates(x, y) {
   const effectiveDistanceY = shouldWrapY ? wrapDistanceY : directDistanceY;
 
   const totalDistance = Math.sqrt(effectiveDistanceX ** 2 + effectiveDistanceY ** 2);
-  const totalDuration = totalDistance / 0.5;
+  const totalDuration = totalDistance / 0.35;
 
   await Promise.all([
     moveVerticalLine(verticalLine, x, currentX, totalDuration),
