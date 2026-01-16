@@ -25,25 +25,58 @@
         object-position: center;
         position: absolute;
         inset: 0;
+
+        display: none;
+        transition: opacity 1s;
+        opacity: 1;
+      }
+
+      .content img.visible {
+        display: block;
+      }
+
+      @starting-style {
+        .content img {
+          opacity: 0;
+        }
       }
 
       .crosshairs {
         background-color: gold;
         position: absolute;
-        transition: transform linear;
+        transition-property: translate width height;
+        transition-timing-function: linear;
         transition-duration: 1s;
+
+        display: none;
       }
 
       .crosshairs.horizontal {
         width: 100dvw;
         height: 1px;
-        top: -1px;
+        top: 50dvh;
       }
 
       .crosshairs.vertical {
         width: 1px;
         height: 100dvh;
-        left: -1px;
+        left: 50dvw;
+      }
+
+      .crosshairs.visible {
+          display: block;
+      }
+
+      @starting-style {
+          .crosshairs.vertical {
+              height: 0dvh;
+              translate: 0px 50dvh;
+          }
+
+          .crosshairs.horizontal {
+              width: 0dvw;
+              translate: 50dvw 0px;
+          }
       }
 
       .marker {
@@ -72,7 +105,13 @@
         overflow: hidden;
         width: 500px;
         /* Add some tint to keep the text somewhat readable */
-        background: rgba(0, 0, 0, 0.3)
+        background: rgba(0, 0, 0, 0.3);
+
+        display: none;
+      }
+
+      .label-container.visible {
+        display: block;
       }
 
       @starting-style {
@@ -114,21 +153,51 @@
         font-size: 14px;
         white-space: nowrap;
         flex-shrink: 0;
+        text-transform: uppercase;
       }
 
     </style>
     <script type="module">
-      import { moveToCoordinates } from './crosshair.js';
+      import { animateInCrosshair, moveToCoordinates } from './crosshair.js';
       import { fetchEarthquakeData } from './data.js';
       import { addLabel, markCoordinate } from './gui.js';
       import { getMapDimensions, latLngToPixel } from './map.js';
 
+      // Start fetching data immediately
       const dataPromise = fetchEarthquakeData();
 
-      document.addEventListener("DOMContentLoaded", async () => {
-        const data = await dataPromise;
-        const { mapWidth, mapHeight, mapXOverflow, mapYOverflow } =
-          getMapDimensions();
+      const domLoadedPromise = new Promise(resolve => {
+        if (document.readyState === 'loading') {
+          document.addEventListener('DOMContentLoaded', resolve);
+        } else {
+          resolve();
+        }
+      });
+
+      const imageLoadedPromise = domLoadedPromise.then(() => {
+        return new Promise(resolve => {
+          const img = document.querySelector('.content img');
+          if (img.complete) {
+            resolve();
+          } else {
+            img.addEventListener('load', resolve);
+          }
+        });
+      });
+
+      // Wait for all resources
+      Promise.all([domLoadedPromise, imageLoadedPromise, dataPromise]).then(async ([_, __, data]) => {
+        // 1. Fade in map
+        const mapImage = document.querySelector('.content img');
+        mapImage.classList.add('visible');
+        await new Promise(resolve => setTimeout(resolve, 800));
+
+        // 2. Animate in crosshair and label container
+        document.querySelector('.label-container').classList.add('visible');
+        await animateInCrosshair();
+
+        // 3. Start animation loop
+        const { mapWidth, mapHeight, mapXOverflow, mapYOverflow } = getMapDimensions();
 
         let i = 0;
         while (true) {
